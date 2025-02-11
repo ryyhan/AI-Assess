@@ -3,26 +3,64 @@ import requests
 
 BACKEND_URL = "http://localhost:8000"
 
-st.title("AI Test Generator")
+# Initialize session state variables
+if "mode" not in st.session_state:
+    st.session_state.mode = "pdf"  # Default mode: Generate from PDF
+if "questions" not in st.session_state:
+    st.session_state.questions = []
 
-# Test generation section
-pdf_file = st.file_uploader("Upload PDF", type=["pdf"])
-difficulty = st.selectbox("Difficulty", ["easy", "medium", "hard"])
+st.title("AI Assess: AI-Powered Test Generator")
 
-if pdf_file and st.button("Generate Test"):
-    response = requests.post(
-        f"{BACKEND_URL}/generate-test",
-        files={"pdf": pdf_file.getvalue()},
-        data={"difficulty": difficulty}
-    )
-    
-    if response.status_code == 200:
-        st.session_state.questions = response.json()["questions"]
-    else:
-        st.error(f"Failed to generate questions: {response.text}")
+# Mode selection
+st.subheader("Choose Generation Mode")
+mode = st.radio(
+    "Select how you want to generate questions:",
+    ["From PDF", "From Keyword"],
+    index=0 if st.session_state.mode == "pdf" else 1,
+    key="mode_selector"
+)
 
-# Test display and evaluation
-if "questions" in st.session_state:
+# Update session state based on mode selection
+st.session_state.mode = mode.lower().replace(" ", "_")
+
+# Section 1: Generate Test from PDF
+if st.session_state.mode == "from_pdf":
+    st.header("Generate Test from PDF")
+    pdf_file = st.file_uploader("Upload PDF", type=["pdf"])
+    difficulty = st.selectbox("Difficulty", ["easy", "medium", "hard"])
+    num_questions = st.slider("Number of Questions", min_value=1, max_value=10, value=5)
+
+    if pdf_file and st.button("Generate Test"):
+        response = requests.post(
+            f"{BACKEND_URL}/generate-test",
+            files={"pdf": pdf_file.getvalue()},
+            data={"difficulty": difficulty, "num_questions": num_questions}
+        )
+        
+        if response.status_code == 200:
+            st.session_state.questions = response.json()["questions"]
+        else:
+            st.error(f"Failed to generate questions: {response.text}")
+
+# Section 2: Generate Test from Keyword
+elif st.session_state.mode == "from_keyword":
+    st.header("Generate Test from Keyword")
+    keyword = st.text_input("Enter a Keyword")
+    num_questions_keyword = st.slider("Number of Questions (Keyword)", min_value=1, max_value=10, value=5)
+
+    if keyword and st.button("Generate Questions from Keyword"):
+        response = requests.post(
+            f"{BACKEND_URL}/generate-from-keyword",
+            json={"keyword": keyword, "num_questions": num_questions_keyword}
+        )
+        
+        if response.status_code == 200:
+            st.session_state.questions = response.json()["questions"]
+        else:
+            st.error(f"Failed to generate questions: {response.text}")
+
+# Section 3: Display and Evaluate Test
+if st.session_state.questions:
     st.subheader("Test")
     user_answers = []
     
@@ -55,7 +93,7 @@ if "questions" in st.session_state:
             
             if response.status_code == 200:
                 result = response.json()
-                st.success(f"Score: {result['score']}/3")
+                st.success(f"Score: {result['score']}/{len(st.session_state.questions)}")
                 for fb in result["feedback"]:
                     st.write(fb)
             else:
