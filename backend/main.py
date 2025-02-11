@@ -18,6 +18,11 @@ class EvaluationRequest(BaseModel):
     questions: list
     user_answers: list
 
+# Pydantic model for generating questions from a keyword
+class KeywordRequest(BaseModel):
+    keyword: str
+    num_questions: int
+
 def extract_text_from_pdf(pdf_file):
     reader = PdfReader(pdf_file)
     text = ""
@@ -25,12 +30,15 @@ def extract_text_from_pdf(pdf_file):
         text += page.extract_text()
     return text
 
-def generate_questions(text: str, difficulty: str = "medium"):
+def generate_questions_from_text(text: str, num_questions: int, difficulty: str = "medium"):
+    if num_questions > 10:
+        raise HTTPException(status_code=400, detail="Maximum number of questions allowed is 10.")
+    
     text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     chunks = text_splitter.split_text(text)
     
     prompt = f"""
-    Generate 2 multiple-choice questions and 1 subjective question from the text below.
+    Generate {num_questions} multiple-choice questions and subjective questions from the text below.
     Difficulty: {difficulty}
     Text: {chunks[0]}
     
@@ -60,9 +68,6 @@ def generate_questions(text: str, difficulty: str = "medium"):
         
         raw_response = response.choices[0].message.content
         
-        # Log the raw response for debugging
-        print("Raw API Response:", raw_response)
-        
         # Strip Markdown-style backticks if present
         if raw_response.startswith("```json") and raw_response.endswith("```"):
             raw_response = raw_response[len("```json"):].strip()[:-3].strip()
@@ -83,13 +88,75 @@ def generate_questions(text: str, difficulty: str = "medium"):
         raise HTTPException(status_code=500, detail="Error communicating with OpenAI API")
 
 @app.post("/generate-test")
-async def generate_test(pdf: UploadFile = File(None), difficulty: str = "medium"):
+async def generate_test(pdf: UploadFile = File(None), difficulty: str = "medium", num_questions: int = 5):
     if not pdf:
         raise HTTPException(400, "Upload a PDF file")
     
     text = extract_text_from_pdf(pdf.file)
-    questions = generate_questions(text, difficulty)
+    questions = generate_questions_from_text(text, num_questions, difficulty)
     return {"questions": questions["questions"]}
+
+@app.post("/generate-from-keyword")
+async def generate_from_keyword(request: KeywordRequest):
+    keyword = request.keyword.strip()
+    num_questions = request.num_questions
+    
+    if num_questions > 10:
+        raise HTTPException(status_code=400, detail="Maximum number of questions allowed is 10.")
+    
+    prompt = f"""
+    Generate {num_questions} multiple-choice questions and subjective questions based on the keyword: '{keyword}'.
+    If the keyword does not provide enough context to generate meaningful questions, reply with:
+    {{
+        "error": "Not enough context to generate questions from this keyword."
+    }}
+    Otherwise, return the response strictly as valid JSON in the following format:
+    {{
+        "questions": [
+            {{
+                "type": "mcq",
+                "question": "...",
+                "options": ["A", "B", "C", "D"],
+                "correct_answer": "A"
+            }},
+            {{
+                "type": "subjective",
+                "question": "...",
+                "correct_answer": "..."
+            }}
+        ]
+    }}
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",  # Updated to gpt-4o
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        raw_response = response.choices[0].message.content
+        
+        # Strip Markdown-style backticks if present
+        if raw_response.startswith("```json") and raw_response.endswith("```"):
+            raw_response = raw_response[len("```json"):].strip()[:-3].strip()
+        
+        # Check if the response is empty
+        if not raw_response.strip():
+            raise HTTPException(status_code=500, detail="Empty response from OpenAI API")
+        
+        # Attempt to parse the response as JSON
+        try:
+            parsed_response = json.loads(raw_response)
+            if "error" in parsed_response:
+                raise HTTPException(status_code=400, detail=parsed_response["error"])
+            return parsed_response
+        except json.JSONDecodeError as e:
+            print(f"JSON Decode Error: {e}")
+            raise HTTPException(status_code=500, detail="Failed to parse API response")
+    
+    except Exception as e:
+        print(f"OpenAI API Error: {e}")
+        raise HTTPException(status_code=500, detail="Error communicating with OpenAI API")
 
 @app.post("/evaluate-answers")
 async def evaluate_answers(request: EvaluationRequest):
