@@ -9,7 +9,7 @@ if "mode" not in st.session_state:
 if "questions" not in st.session_state:
     st.session_state.questions = []
 
-st.title("AI Assess: AI-Powered Test Generator")
+st.title("TestForge: AI-Powered Test Generator")
 
 # Mode selection
 st.subheader("Choose Generation Mode")
@@ -28,13 +28,18 @@ if st.session_state.mode == "from_pdf":
     st.header("Generate Test from PDF")
     pdf_file = st.file_uploader("Upload PDF", type=["pdf"])
     difficulty = st.selectbox("Difficulty", ["easy", "medium", "hard"])
-    num_questions = st.slider("Number of Questions", min_value=1, max_value=10, value=5)
+    num_mcqs = st.slider("Number of MCQs", min_value=0, max_value=10, value=2)
+    num_subjective = st.slider("Number of Subjective Questions", min_value=0, max_value=10, value=1)
 
     if pdf_file and st.button("Generate Test"):
         response = requests.post(
             f"{BACKEND_URL}/generate-test",
             files={"pdf": pdf_file.getvalue()},
-            data={"difficulty": difficulty, "num_questions": num_questions}
+            data={
+                "difficulty": difficulty,
+                "num_mcqs": num_mcqs,
+                "num_subjective": num_subjective
+            }
         )
         
         if response.status_code == 200:
@@ -46,12 +51,19 @@ if st.session_state.mode == "from_pdf":
 elif st.session_state.mode == "from_keyword":
     st.header("Generate Test from Keyword")
     keyword = st.text_input("Enter a Keyword")
-    num_questions_keyword = st.slider("Number of Questions (Keyword)", min_value=1, max_value=10, value=5)
+    difficulty = st.selectbox("Difficulty", ["easy", "medium", "hard"])
+    num_mcqs = st.slider("Number of MCQs", min_value=0, max_value=10, value=2)
+    num_subjective = st.slider("Number of Subjective Questions", min_value=0, max_value=10, value=1)
 
     if keyword and st.button("Generate Questions from Keyword"):
         response = requests.post(
             f"{BACKEND_URL}/generate-from-keyword",
-            json={"keyword": keyword, "num_questions": num_questions_keyword}
+            json={
+                "keyword": keyword,
+                "num_mcqs": num_mcqs,
+                "num_subjective": num_subjective,
+                "difficulty": difficulty
+            }
         )
         
         if response.status_code == 200:
