@@ -1,6 +1,6 @@
 # AI-Assess: AI-Powered Test Generator
 
-TestForge is an AI-powered tool designed to generate tests (MCQs and subjective questions) from uploaded PDF files or keywords. It also evaluates user answers and provides feedback. The application leverages OpenAI's GPT-4o model for generating questions and evaluating responses.
+AI Assess is an AI-powered tool designed to generate tests (MCQs and subjective questions) from uploaded PDF files or keywords. It also evaluates user answers and provides feedback. The application leverages OpenAI's GPT-4o model for generating questions and evaluating responses.
 
 ## Features
 
