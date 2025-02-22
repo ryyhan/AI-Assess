@@ -25,7 +25,7 @@ AI Assess is an AI-powered tool designed to generate tests (MCQs and subjective 
 ---
 
 ## Demo
-- Click below
+- [Click here](https://youtu.be/cdadwiiSF9E)
 
 
 [![AI Assess](https://img.youtube.com/vi/cdadwiiSF9E/0.jpg)]("https://youtu.be/cdadwiiSF9E")
