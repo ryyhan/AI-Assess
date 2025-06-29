@@ -1,0 +1,8 @@
+fastapi
+langchain
+PyPDF2
+openai
+pydantic
+python-multipart
+requests
+fpdf2
