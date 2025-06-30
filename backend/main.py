@@ -1,5 +1,4 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
-
 import os
 import json
 import re
@@ -7,22 +6,17 @@ import re
 from dotenv import load_dotenv
 
 from .models import EvaluationRequest, KeywordRequest
-from .services.openai_service import call_openai_api
-from .utils.pdf_utils import extract_text_from_pdf
-from .utils.question_utils import normalize_options
+from .services.question_service import call_openai_api, generate_questions_from_text
+from .utils.utils import extract_text_from_pdf, normalize_options
+from .services.evaluation_service import evaluate_answers
+from .services.pdf_service import generate_pdf_report
 
 load_dotenv()
 
 app = FastAPI()
 
-
-
-from .services.question_generation_service import generate_questions_from_text
-
-
-
 @app.post("/generate-test")
-async def generate_test(pdf: UploadFile = File(None), difficulty: str = "medium", num_mcqs: int = 2, num_subjective: int = 1):
+async def generate_test_endpoint(pdf: UploadFile = File(None), difficulty: str = "medium", num_mcqs: int = 2, num_subjective: int = 1):
     if not pdf:
         raise HTTPException(400, "Upload a PDF file")
 
@@ -31,7 +25,7 @@ async def generate_test(pdf: UploadFile = File(None), difficulty: str = "medium"
     return {"questions": questions["questions"]}
 
 @app.post("/generate-from-keyword")
-async def generate_from_keyword(request: KeywordRequest):
+async def generate_from_keyword_endpoint(request: KeywordRequest):
     keyword = request.keyword.strip()
     num_mcqs = request.num_mcqs
     num_subjective = request.num_subjective
@@ -78,13 +72,11 @@ async def generate_from_keyword(request: KeywordRequest):
             q["correct_answer"] = normalize_options([q["correct_answer"]])[0]
     return parsed_response
 
-from .services.evaluation_service import evaluate_answers
-from .services.pdf_service import generate_pdf_report
+@app.post("/evaluate-answers")
+async def evaluate_answers_endpoint(request: EvaluationRequest):
+    score, feedback = evaluate_answers(request.questions, request.user_answers)
+    return {"score": round(score, 2), "feedback": feedback}
 
 @app.post("/generate-pdf-report")
 async def generate_pdf_report_endpoint(request: EvaluationRequest):
     return generate_pdf_report(request.questions, request.user_answers, request.score, request.feedback)
-
-
-
-
