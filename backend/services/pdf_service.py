@@ -18,7 +18,7 @@ def generate_pdf_report(questions: list, user_answers: list, score: float, feedb
         if q["type"] == "mcq":
             pdf.multi_cell(0, 10, f"Correct Answer: {q['correct_answer']}")
             pdf.multi_cell(0, 10, f"Your Answer: {ans}")
-            if str(ans).strip().upper() == str(q["correct_answer"]).strip().upper():
+            if "Correct" in feedback[idx]:
                 pdf.set_text_color(0, 128, 0) # Green
                 pdf.multi_cell(0, 10, "Status: Correct")
             else:

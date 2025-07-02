@@ -121,15 +121,7 @@ if st.session_state.questions:
                 # Download Report Button
                 st.download_button(
                     label="Download Report",
-                    data=requests.post(
-                        f"{BACKEND_URL}/generate-pdf-report",
-                        json={
-                            "questions": st.session_state.questions,
-                            "user_answers": user_answers,
-                            "score": result['score'],
-                            "feedback": result['feedback']
-                        }
-                    ).content,
+                    data=result['pdf_report'].encode('latin-1'),
                     file_name="test_report.pdf",
                     mime="application/pdf"
                 )

@@ -1,5 +1,4 @@
 import os
-import re
 from fastapi import HTTPException
 from openai import OpenAI
 
@@ -11,16 +10,8 @@ def evaluate_answers(questions: list, user_answers: list):
     
     for idx, (q, ans) in enumerate(zip(questions, user_answers)):
         if q["type"] == "mcq":
-            # Normalize user answer: Extract only the first letter (e.g., 'A', 'B', 'C') and append a period
-            match_user = re.match(r"([A-Za-z])", str(ans).strip())
-            user_answer = match_user.group(1).upper() + "." if match_user else None
-            
-            # Normalize correct answer: Extract only the first letter (e.g., 'A', 'B', 'C') and append a period
-            match_correct = re.match(r"([A-Za-z])", str(q["correct_answer"]).strip())
-            correct_answer = match_correct.group(1).upper() + "." if match_correct else None
-            
-            # Log the normalized values for debugging
-            print(f"Debug - Q{idx+1}: Normalized User Answer: '{user_answer}', Normalized Correct Answer: '{correct_answer}'")
+            user_answer = str(ans).strip()
+            correct_answer = str(q["correct_answer"]).strip()
             
             if user_answer == correct_answer:
                 score += 1

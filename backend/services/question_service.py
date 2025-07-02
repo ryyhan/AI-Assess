@@ -4,6 +4,7 @@ import re
 from openai import OpenAI
 from fastapi import HTTPException
 from langchain.text_splitter import CharacterTextSplitter
+from ..utils.utils import normalize_options
 
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -72,14 +73,3 @@ def generate_questions_from_text(text: str, num_mcqs: int, num_subjective: int, 
             q["options"] = normalize_options(q["options"])
             q["correct_answer"] = normalize_options([q["correct_answer"]])[0]
     return parsed_response
-
-def normalize_options(options):
-    # Normalize options to a consistent format (e.g., "A. Option 1")
-    normalized_options = []
-    for option in options:
-        # Extract the letter (A, B, C, D) and append a period
-        match = re.match(r"([A-Za-z])[).:-]?\s*(.*)", option)
-        if match:
-            letter, text = match.groups()
-            normalized_options.append(f"{letter.upper()}. {text.strip()}")
-    return normalized_options

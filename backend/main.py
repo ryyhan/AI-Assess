@@ -15,6 +15,15 @@ load_dotenv()
 
 app = FastAPI()
 
+def process_generated_questions(response):
+    if "error" in response:
+        raise HTTPException(status_code=400, detail=response["error"])
+    for q in response["questions"]:
+        if q["type"] == "mcq":
+            q["options"] = normalize_options(q["options"])
+            q["correct_answer"] = normalize_options([q["correct_answer"]])[0]
+    return response
+
 @app.post("/generate-test")
 async def generate_test_endpoint(pdf: UploadFile = File(None), difficulty: str = "medium", num_mcqs: int = 2, num_subjective: int = 1):
     if not pdf:
@@ -22,7 +31,7 @@ async def generate_test_endpoint(pdf: UploadFile = File(None), difficulty: str =
 
     text = extract_text_from_pdf(pdf.file)
     questions = generate_questions_from_text(text, num_mcqs, num_subjective, difficulty)
-    return {"questions": questions["questions"]}
+    return process_generated_questions(questions)
 
 @app.post("/generate-from-keyword")
 async def generate_from_keyword_endpoint(request: KeywordRequest):
@@ -62,21 +71,12 @@ async def generate_from_keyword_endpoint(request: KeywordRequest):
     }}
     """
 
-    parsed_response = call_openai_api(prompt)
-    if "error" in parsed_response:
-        raise HTTPException(status_code=400, detail=parsed_response["error"])
-    # Normalize options for MCQs
-    for q in parsed_response["questions"]:
-        if q["type"] == "mcq":
-            q["options"] = normalize_options(q["options"])
-            q["correct_answer"] = normalize_options([q["correct_answer"]])[0]
-    return parsed_response
+    response = call_openai_api(prompt)
+    return process_generated_questions(response)
 
 @app.post("/evaluate-answers")
 async def evaluate_answers_endpoint(request: EvaluationRequest):
     score, feedback = evaluate_answers(request.questions, request.user_answers)
-    return {"score": round(score, 2), "feedback": feedback}
+    pdf_report = generate_pdf_report(request.questions, request.user_answers, score, feedback)
+    return {"score": round(score, 2), "feedback": feedback, "pdf_report": pdf_report.body.decode('latin-1')}
 
-@app.post("/generate-pdf-report")
-async def generate_pdf_report_endpoint(request: EvaluationRequest):
-    return generate_pdf_report(request.questions, request.user_answers, request.score, request.feedback)
