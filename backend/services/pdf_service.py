@@ -44,4 +44,5 @@ def generate_pdf_report(questions: list, user_answers: list, score: float, feedb
         pdf.multi_cell(0, 10, fb)
     
     pdf_output = pdf.output(dest='S').encode('latin-1')
-    return StreamingResponse(BytesIO(pdf_output), media_type="application/pdf", headers={'Content-Disposition': 'attachment;filename="test_report.pdf"'})
+    pdf_stream = BytesIO(pdf_output)
+    return pdf_output, StreamingResponse(pdf_stream, media_type="application/pdf", headers={'Content-Disposition': 'attachment;filename="test_report.pdf"'})
