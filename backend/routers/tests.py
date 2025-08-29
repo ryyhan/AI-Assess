@@ -49,6 +49,5 @@ async def evaluate_answers_endpoint(request: EvaluationRequest):
     evaluation_result = evaluate_answers(request.questions, request.user_answers)
     score = evaluation_result["score"]
     feedback = evaluation_result["feedback"]
-    pdf_stream = generate_pdf_report(request.questions, request.user_answers, score, feedback)
-    pdf_content = pdf_stream.body.read()  # Extract PDF content
+    pdf_content, pdf_stream = generate_pdf_report(request.questions, request.user_answers, score, feedback)
     return {"score": round(score, 2), "feedback": feedback, "pdf_report": pdf_content.decode('latin-1')}
