@@ -33,8 +33,8 @@ async def generate_from_keyword_endpoint(request: KeywordRequest):
     num_subjective = request.num_subjective
     difficulty = request.difficulty
 
-    if num_mcqs + num_subjective > 10:
-        raise HTTPException(status_code=400, detail="Maximum total number of questions allowed is 10.")
+    if num_mcqs + num_subjective > 20:
+        raise HTTPException(status_code=400, detail="Maximum total number of questions allowed is 20.")
 
     if difficulty not in ["easy", "medium", "hard"]:
         raise HTTPException(status_code=400, detail="Invalid difficulty level. Must be 'easy', 'medium', or 'hard'.")
